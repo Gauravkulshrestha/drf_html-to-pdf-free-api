@@ -1,8 +1,9 @@
 from rest_framework.views import APIView
-from rest_framework.response import Response
 from .serializers import Html_to_PDFSerializer
+from django.http import HttpResponse
 import http.client
 import json
+import requests
 
 class HTML_to_PDFView(APIView):
     serializer_class = Html_to_PDFSerializer
@@ -24,6 +25,12 @@ class HTML_to_PDFView(APIView):
             conn.request("POST", "/pdf", payload, headers)
             res = conn.getresponse()
             data = res.read()
-            result = data.decode("utf-8")
+            results = data.decode("utf-8")
+            data = results.lstrip("'{\"pdf\":\'").rstrip("\"}")
+            responses = requests.get(data)
+            response = HttpResponse(responses,content_type='application/pdf')
+            response['Content-Disposition'] = 'attachment; filename="report.pdf"'
+            with open('report.pdf', 'wb') as f:
+                f.write(responses.content)
             serializer.save()
-        return Response(result)
+        return response
